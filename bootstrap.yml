@@ -1,0 +1,27 @@
+name: Bootstrap
+on:
+  workflow_dispatch:
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract build workflow from zip
+        run: |
+          ZIP=$(ls *.zip | head -1)
+          echo "Using $ZIP"
+          unzip -o "$ZIP" -d /tmp/s
+          WF=$(find /tmp/s -name "*.yml" -path "*workflows*" | head -1)
+          if [ -z "$WF" ]; then echo "workflow not found in zip"; exit 1; fi
+          mkdir -p .github/workflows
+          cp "$WF" .github/workflows/build.yml
+          echo "Copied $WF"
+      - name: Commit build workflow
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .github/workflows/build.yml
+          git diff --cached --quiet || git commit -m "Add build workflow from zip"
+          git push
